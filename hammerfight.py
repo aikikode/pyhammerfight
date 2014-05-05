@@ -60,16 +60,16 @@ class Hammer(object):
         self.body_sprite = cocos.sprite.Sprite('body.png')
         # sword
         mass = 15
-        inertia = pymunk.moment_for_box(mass, 30, 250)
+        inertia = pymunk.moment_for_box(mass, 20, 332)
         self.sword = pymunk.Body(mass, inertia)
-        self.sword.position = (pos[0], pos[1] - 120)
+        self.sword.position = (pos[0], pos[1] - 166)
         self.sword.angular_velocity_limit = 2 * math.pi  # Do not allow too rapid swinging, it's not natural and also
                                                          # can 'break' physics due to objects flying through the sword
         sword_shape = pymunk.Poly(self.sword, [
-            (-15, -135),
-            (-15, 115),
-            (15, 115),
-            (15, -135)])
+            (-10, -166),
+            (-10, 166),
+            (10, 166),
+            (10, -166)])
         sword_shape.elasticity = 0.9
         sword_shape.friction = 0.8
         sword_shape.layers = 0b010
@@ -79,7 +79,7 @@ class Hammer(object):
         # body for more natural look
         self.sword_hammer = pymunk.constraint.PivotJoint(self.body, self.sword, (pos[0], pos[1] - 10))
         # Sword sprite
-        self.sword_sprite = cocos.sprite.Sprite('sword.png')
+        self.sword_sprite = cocos.sprite.Sprite('sword2.png')
         # Make the hammer 'fly' by applying the force opposite to the gravity
         self.body.apply_force(-(1 + self.body.mass + self.sword.mass) * space.gravity)
         space.add(self.body, self.body_shape, self.aim, self.aim_shape, self.hammer_move, self.sword, self.sword_shape,
