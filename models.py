@@ -3,6 +3,7 @@ import cocos
 from cocos.actions import Repeat, RotateBy, ScaleBy, Reverse
 from cocos.sprite import Sprite
 import math
+import pyglet
 import pymunk
 
 import constants
@@ -11,10 +12,11 @@ __author__ = 'aikikode'
 
 
 class Enemy(object):
-    def __init__(self, game, pos):
+    def __init__(self, game, pos, bonus_type=0):
         self._game = game
         self.is_alive = True
-        self._life = 3000
+        self._life = constants.ENEMY_ARMOR
+        self.bonus_type = bonus_type
         # Mouse pointer 'body'
         self.aim = pymunk.Body(1, 1)
         self.aim_shape = pymunk.Circle(self.aim, 1, (0, 0))
@@ -30,7 +32,14 @@ class Enemy(object):
         shape.friction = 0.8
         shape.collision_type = 3
         self.shape = shape
-        self.sprite = Sprite("enemy.png")
+        if not bonus_type:
+            self.sprite = Sprite("enemy.png")
+        elif bonus_type == constants.HEALTH_BONUS_TYPE:
+            animation = pyglet.resource.animation("bonus_enemy_green.gif")
+            self.sprite = Sprite(animation)
+        elif bonus_type == constants.KILLALL_BONUS_TYPE:
+            animation = pyglet.resource.animation("bonus_enemy_yellow.gif")
+            self.sprite = Sprite(animation)
         self.sprite.do(Repeat(RotateBy(360, 2)))
         self.body.position = self.sprite.position = pos
         self.body.apply_force(-(self.body.mass + self.aim.mass) * game.space.gravity)
@@ -52,18 +61,25 @@ class Enemy(object):
         if self._life <= 0:
             self._life = 0
             self.is_alive = False
-        elif self._life < 1500:
+        elif self._life < 1500 and not self.bonus_type:
             self._game.remove(self.sprite)
             self.sprite = Sprite("enemy_damaged.png")
             self.sprite.do(Repeat(RotateBy(360, 1)))
             self._game.add(self.sprite)
 
+    def suicide(self):
+        self._life = 0
+        self.is_alive = False
+
 
 class Hammer(object):
     def __init__(self, space, pos):
         self.is_alive = True
-        self.life = 4000
+        self.life = constants.PLAYER_ARMOR
         # Mouse pointer 'body'
+        # We need to make the hammer follow the cursor, but with some delay to create the effect of flying through the
+        # air. We achieve this by adding an invisible damped string between the mouse pointer and the hammer. For this
+        # we need to create a 'body' for mouse pointer to connect a damped string to.
         self.aim = pymunk.Body(1, 1)
         self.aim_shape = pymunk.Circle(self.aim, 1, (0, 0))
         self.aim_shape.layers = 0b000  # The 'aim' should not collide with any objects
@@ -83,7 +99,7 @@ class Hammer(object):
         body_shape.elasticity = 0.9
         body_shape.friction = 0.8
         body_shape.collision_type = 1
-        body_shape.layers = 0b001
+        body_shape.layers = 0b001  # set layers for body and sword (below) to forbid their collision
         self.body_shape = body_shape
         # Connect aim and hammer with a DampedSpring - this should create the effect of flying through the air
         self.hammer_move = pymunk.constraint.DampedSpring(self.aim, self.body, (0, 0), (0, 0), 1, 4000.0, 1.0)
@@ -98,8 +114,8 @@ class Hammer(object):
         inertia = pymunk.moment_for_box(mass, 8, 120)
         self.sword = pymunk.Body(mass, inertia)
         self.sword.position = (pos[0], pos[1] - 60)
-        self.sword.angular_velocity_limit = 2 * math.pi  # Do not allow too rapid swinging, it's not natural and also
-        # can 'break' physics due to objects flying through the sword
+        self.sword.angular_velocity_limit = 1.8 * math.pi  # Do not allow too rapid swinging, it's not natural and also
+        # can 'break' physics due to enemies flying through the sword
         sword_shape = pymunk.Poly(self.sword, [
             (-4, -60),
             (-4, 60),
@@ -111,12 +127,12 @@ class Hammer(object):
         sword_shape.collision_type = 2
         self.sword_shape = sword_shape
         # Connect hammer and sword with a joint - place the joint a little below the center of the mass of the main
-        # body for more natural look
+        # body to make the body return to vertical state
         self.sword_hammer = pymunk.constraint.PivotJoint(self.body, self.sword, (pos[0], pos[1] - 1))
         # Sword sprite
         self.sword_sprite = cocos.sprite.Sprite('sword.png')
         # Make the hammer 'fly' by applying the force opposite to the gravity
-        self.body.apply_force(-(1 + self.body.mass + self.sword.mass) * space.gravity)
+        self.body.apply_force(-(self.aim.mass + self.body.mass + self.sword.mass) * space.gravity)
         space.add(self.body, self.body_shape, self.aim, self.aim_shape, self.hammer_move, self.sword, self.sword_shape,
                   self.sword_hammer)
         self.space = space
@@ -147,3 +163,6 @@ class Hammer(object):
         if self.life <= 0:
             self.life = 0
             self.is_alive = False
+
+    def repair(self):
+        self.life = constants.PLAYER_ARMOR

@@ -39,13 +39,14 @@ class Game(Layer):
         self.target = ((self.width / 2., self.height / 2.))
         self.enemies = []
         self.schedule_interval(self.update, 1. / constants.FPS)
-        self.schedule_interval(self.spawn_enemy, 5)
+        self.schedule_interval(self.spawn_enemy, constants.DEFAULT_SPAWN_INTERVAL)
         self.space.add_collision_handler(3, 1, post_solve=self.on_enemy_hits_body)
         self.space.add_collision_handler(2, 3, post_solve=self.on_sword_hits_enemy)
         # Configure event manager to send game events to control module
         self.event_manager = pyglet.event.EventDispatcher()
         self.event_manager.register_event_type('on_enemy_kill')
         self.event_manager.register_event_type('on_enemy_hits_player')
+        self.event_manager.register_event_type('on_enemy_spawn')
 
     def on_enemy_hits_body(self, space, arbiter):
         enemy = filter(lambda b: b.shape == arbiter.shapes[0], self.enemies)[0]
@@ -58,9 +59,13 @@ class Game(Layer):
         enemy = filter(lambda b: b.shape == arbiter.shapes[1], self.enemies)[0]
         enemy.take_damage(arbiter.total_impulse.length)
         if not enemy.is_alive:
-            self.event_manager.dispatch_event('on_enemy_kill', self)
+            self.event_manager.dispatch_event('on_enemy_kill', self, enemy)
             threading.Timer(0.5, self.remove_enemy, args=[enemy]).start()
         return True
+
+    def kill_enemy(self, enemy):
+        enemy.suicide()
+        threading.Timer(0.5, self.remove_enemy, args=[enemy]).start()
 
     ## Disable mouse clicks for now
     # def on_mouse_press(self, x, y, buttons, modifiers):
@@ -93,14 +98,27 @@ class Game(Layer):
             pass
 
     def spawn_enemy(self, dt):
+        def get_random_with_probability(prob_distr):
+            assert prob_distr
+            r = random.uniform(0, 1)
+            s = 0
+            for item in prob_distr:
+                s += item[1]
+                if s >= r:
+                    return item[0]
         if len(self.enemies) < constants.MAX_ENEMIES and not self.game_ended:
-            enemy = Enemy(self, (random.randint(30, self.width - 30), self.height + 50))
+            enemy_type = get_random_with_probability([[0, 0.9],
+                                                      [constants.HEALTH_BONUS_TYPE, 0.07],
+                                                      [constants.KILLALL_BONUS_TYPE, 0.03]])
+            enemy = Enemy(self, (random.randint(30, self.width - 30), self.height + 50), bonus_type=enemy_type)
             self.enemies.append(enemy)
             self.add(enemy.sprite)
+            self.event_manager.dispatch_event('on_enemy_spawn', self)
 
 
 class EndGame(Layer):
     is_event_handler = True  # enable pyglet's events
+
     def __init__(self):
         super(EndGame, self).__init__()
         self.background = ColorLayer(0, 0, 0, 170)
