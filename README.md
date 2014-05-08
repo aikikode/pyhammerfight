@@ -9,8 +9,8 @@ Python simple clone of famous [hammerfight](http://store.steampowered.com/app/41
 Gameplay
 --------
 Move your mouse to control the flying machine and swing the sword to kill the enemies.
-The game has one 'level' with infinite number of enemies and it ends when the machine is destroyed. The goal is to stay alive as long as possible.
-Destroy green enemy to repair.
+The game has one 'level' with infinite number of enemies and it ends when the machine is destroyed. The goal is to stay alive as long as possible.  
+Destroy green enemy to repair.  
 Destroy yellow enemy to kill all the enemies on the screen.
 
 How to install
