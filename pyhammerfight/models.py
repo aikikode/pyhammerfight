@@ -1,12 +1,14 @@
 #!/usr/bin/env python
+import math
+
 import cocos
 from cocos.actions import Repeat, RotateBy, ScaleBy, Reverse
 from cocos.sprite import Sprite
-import math
 import pyglet
 import pymunk
 
 import constants
+
 
 __author__ = 'aikikode'
 

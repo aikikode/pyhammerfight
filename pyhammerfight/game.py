@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import random
 import threading
+
 from cocos.director import director
 from cocos.layer import Layer, ColorLayer
 from cocos.scene import Scene
@@ -14,6 +15,7 @@ import constants
 from gamectrl import GameCtrl
 from hud import Hud
 from models import Hammer, Enemy
+
 
 __author__ = 'aikikode'
 
@@ -57,10 +59,11 @@ class Game(Layer):
 
     def on_sword_hits_enemy(self, space, arbiter):
         enemy = filter(lambda b: b.shape == arbiter.shapes[1], self.enemies)[0]
-        enemy.take_damage(arbiter.total_impulse.length)
-        if not enemy.is_alive:
-            self.event_manager.dispatch_event('on_enemy_kill', self, enemy)
-            threading.Timer(0.5, self.remove_enemy, args=[enemy]).start()
+        if enemy.is_alive:
+            enemy.take_damage(arbiter.total_impulse.length)
+            if not enemy.is_alive:
+                self.event_manager.dispatch_event('on_enemy_kill', self, enemy)
+                threading.Timer(0.5, self.remove_enemy, args=[enemy]).start()
         return True
 
     def kill_enemy(self, enemy):
@@ -108,8 +111,8 @@ class Game(Layer):
                     return item[0]
         if len(self.enemies) < constants.MAX_ENEMIES and not self.game_ended:
             enemy_type = get_random_with_probability([[0, 0.9],
-                                                      [constants.HEALTH_BONUS_TYPE, 0.07],
-                                                      [constants.KILLALL_BONUS_TYPE, 0.03]])
+                                                      [constants.HEALTH_BONUS_TYPE, 0.05],
+                                                      [constants.KILLALL_BONUS_TYPE, 0.05]])
             enemy = Enemy(self, (random.randint(30, self.width - 30), self.height + 50), bonus_type=enemy_type)
             self.enemies.append(enemy)
             self.add(enemy.sprite)

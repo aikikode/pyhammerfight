@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 from cocos.layer import Layer
-import constants
+
+from pyhammerfight import constants
+
 
 __author__ = 'aikikode'
 
